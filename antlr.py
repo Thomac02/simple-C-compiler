@@ -27,7 +27,7 @@ def main(argv):
     walker = ParseTreeWalker()
     walker.walk(clistener, tree)
 
-    print(Trees.toStringTree(tree, None, parser))
+    ast.printNodes(ast.root)
 
 
 if __name__ == '__main__':

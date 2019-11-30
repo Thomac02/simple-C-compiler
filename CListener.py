@@ -14,13 +14,26 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#primaryExpression.
     def enterPrimaryExpression(self, ctx: CParser.PrimaryExpressionContext):
-        constant = Constant()
-        constant.value = ctx.getChild(0).getText()
-        if isinstance(self.ast.lastNode, BinaryOp):
+        if ctx.Constant() is not None: #need to figure out how to get type
+            constant = Constant()
+            constant.value = int(ctx.children[0].getText())
+            if isinstance(self.ast.lastNode, BinaryOp):
+                if self.ast.lastNode.left is None:
+                    self.ast.lastNode.left = constant
+                    self.ast.lastNode.children.append(constant)
+                else:
+                    self.ast.lastNode.right = constant
+                    self.ast.lastNode.children.append(constant)
+        elif ctx.Identifier() is not None:
+            identifier = ID(ctx.children[0].getText())
             if self.ast.lastNode.left is None:
-                self.ast.lastNode.left = constant
+                self.ast.lastNode.left = identifier
+                self.ast.lastNode.children.append(identifier)
             else:
-                self.ast.lastNode.right = constant
+                self.ast.lastNode.right = identifier
+                self.ast.lastNode.children.append(identifier)
+
+
 
     # Exit a parse tree produced by CParser#primaryExpression.
     def exitPrimaryExpression(self, ctx: CParser.PrimaryExpressionContext):
@@ -92,7 +105,19 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#multiplicativeExpression.
     def enterMultiplicativeExpression(self, ctx: CParser.MultiplicativeExpressionContext):
-        pass
+        if ctx.getChildCount() == 1:
+            return
+        binaryOp = BinaryOp()
+        if ctx.Star() is not None:
+            binaryOp.op = '*'
+        elif ctx.Div() is not None:
+            binaryOp.op = '/'
+        elif ctx.Mod() is not None:
+            binaryOp.op = '%'
+        else:
+            return
+        self.ast.lastNode.children.append(binaryOp)
+        self.ast.lastNode = binaryOp
 
     # Exit a parse tree produced by CParser#multiplicativeExpression.
     def exitMultiplicativeExpression(self, ctx: CParser.MultiplicativeExpressionContext):
@@ -100,11 +125,15 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#additiveExpression.
     def enterAdditiveExpression(self, ctx: CParser.AdditiveExpressionContext):
+        if ctx.getChildCount() == 1:
+            return
         binaryOp = BinaryOp()
-        if ctx.getChild(1).getText() == '+':
+        if ctx.Plus() is not None:
             binaryOp.op = '+'
-        else:
+        elif ctx.Minus() is not None:
             binaryOp.op = '-'
+        else:
+            return
         self.ast.lastNode.children.append(binaryOp)
         self.ast.lastNode = binaryOp
 
@@ -674,8 +703,7 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#jumpStatement.
     def enterJumpStatement(self, ctx: CParser.JumpStatementContext):
-        jumpType = ctx.getChild(0).getText()
-        if jumpType == "return":
+        if ctx.Return():
             jumpNode = Return()
         if not self.ast.hasRoot():
             self.ast.root = jumpNode

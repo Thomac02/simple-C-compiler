@@ -6,6 +6,14 @@ class AST:
     def hasRoot(self):
         return self.root is not None
 
+    def printNodes(self, node):
+        if node is not None:
+            node.printNode()
+            for child in node.children:
+                self.printNodes(child)
+        else:
+            return
+
 
 # We need to give the AST data structure some idea of the current 'active' node, so we know what
 # to add a child to in the listener
@@ -13,7 +21,10 @@ class AST:
 class ASTNode:
     def __init__(self, parent=None):
         self.parent = parent
-        self.children = {}
+        self.children = []
+
+    def printNode(self):
+        pass
 
 
 class ArrayDecl(ASTNode):
@@ -33,6 +44,10 @@ class BinaryOp(ASTNode):
         self.op = None
         self.left = None
         self.right = None
+        self.children = []
+
+    def printNode(self):
+        print("BinaryOp " + str(self.op))
 
 
 class Break(ASTNode):
@@ -59,6 +74,10 @@ class Constant(ASTNode):
     def __init__(self):
         self.type = None
         self.value = None
+        self.children = {}
+
+    def printNode(self):
+        print("Constant " + str(self.type) + " " + str(self.value))
 
 
 class Continue(ASTNode):
@@ -126,7 +145,12 @@ class Goto(ASTNode):
 
 
 class ID(ASTNode):
-    pass
+    def __init__(self, name):
+        self.name = name
+        self.children = {}
+
+    def printNode(self):
+        print("Identifier " + str(self.name))
 
 
 class IdentifierType(ASTNode):
@@ -160,6 +184,10 @@ class Ptrdecl(ASTNode):
 class Return(ASTNode):
     def __init__(self, expr=None):
         self.expr = expr
+        self.children = []
+
+    def printNode(self):
+        print("Return")
 
 
 class Struct(ASTNode):
