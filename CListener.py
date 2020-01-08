@@ -1,6 +1,7 @@
 # Generated from C:/Final Year/C Compiler/PyCharm projects/C\C.g4 by ANTLR 4.7.2
 from antlr4 import *
 from ast import *
+
 if __name__ is not None and "." in __name__:
     from .CParser import CParser
 else:
@@ -14,9 +15,16 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#primaryExpression.
     def enterPrimaryExpression(self, ctx: CParser.PrimaryExpressionContext):
-        if ctx.Constant() is not None: #need to figure out how to get type
+        if ctx.Constant() is not None:  # 'if X is not None' is faster than 'if X'
             constant = Constant()
-            constant.value = int(ctx.children[0].getText())
+            constant.value = ctx.children[0].getText()
+            constant.depth = self.ast.lastNode.depth + 1;
+            if constant.value.find("'") is not -1:
+                constant.type = "char"
+            elif constant.value.find(".") is not -1:
+                constant.type = "float"
+            else:
+                constant.type = "int"
             if isinstance(self.ast.lastNode, BinaryOp):
                 if self.ast.lastNode.left is None:
                     self.ast.lastNode.left = constant
@@ -24,16 +32,16 @@ class CListener(ParseTreeListener):
                 else:
                     self.ast.lastNode.right = constant
                     self.ast.lastNode.children.append(constant)
+                    #do I need to update last node if i know that constants/identifiers wont have children?
         elif ctx.Identifier() is not None:
             identifier = ID(ctx.children[0].getText())
+            identifier.depth = self.ast.lastNode.depth + 1;
             if self.ast.lastNode.left is None:
                 self.ast.lastNode.left = identifier
                 self.ast.lastNode.children.append(identifier)
             else:
                 self.ast.lastNode.right = identifier
                 self.ast.lastNode.children.append(identifier)
-
-
 
     # Exit a parse tree produced by CParser#primaryExpression.
     def exitPrimaryExpression(self, ctx: CParser.PrimaryExpressionContext):
@@ -109,13 +117,14 @@ class CListener(ParseTreeListener):
             return
         binaryOp = BinaryOp()
         if ctx.Star() is not None:
-            binaryOp.op = '*'
+            binaryOp.op = "*"
         elif ctx.Div() is not None:
-            binaryOp.op = '/'
+            binaryOp.op = "/"
         elif ctx.Mod() is not None:
-            binaryOp.op = '%'
+            binaryOp.op = "%"
         else:
             return
+        binaryOp.depth = self.ast.lastNode.depth + 1
         self.ast.lastNode.children.append(binaryOp)
         self.ast.lastNode = binaryOp
 
@@ -129,9 +138,9 @@ class CListener(ParseTreeListener):
             return
         binaryOp = BinaryOp()
         if ctx.Plus() is not None:
-            binaryOp.op = '+'
+            binaryOp.op = "+"
         elif ctx.Minus() is not None:
-            binaryOp.op = '-'
+            binaryOp.op = "-"
         else:
             return
         self.ast.lastNode.children.append(binaryOp)
@@ -708,16 +717,13 @@ class CListener(ParseTreeListener):
         if not self.ast.hasRoot():
             self.ast.root = jumpNode
         else:
+            jumpNode.depth = self.ast.lastNode.depth + 1
             self.ast.lastNode.children.append(jumpNode)
         self.ast.lastNode = jumpNode
 
-        print("Depth: " + str(ctx.depth()))
-        print("Context: " + str(ctx.children))
-        print("Entering jump statement")
-
     # Exit a parse tree produced by CParser#jumpStatement.
     def exitJumpStatement(self, ctx: CParser.JumpStatementContext):
-        print("Exiting jump statement")
+        pass
 
     # Enter a parse tree produced by CParser#compilationUnit.
     def enterCompilationUnit(self, ctx: CParser.CompilationUnitContext):

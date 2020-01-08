@@ -7,9 +7,11 @@ class AST:
         return self.root is not None
 
     def printNodes(self, node):
+        formatspace = "  "
         if node is not None:
             node.printNode()
             for child in node.children:
+                print(formatspace * child.depth, end=' ')
                 self.printNodes(child)
         else:
             return
@@ -22,6 +24,7 @@ class ASTNode:
     def __init__(self, parent=None):
         self.parent = parent
         self.children = []
+        self.depth = 0
 
     def printNode(self):
         pass
@@ -41,10 +44,10 @@ class Assignment(ASTNode):
 
 class BinaryOp(ASTNode):
     def __init__(self):
+        super(BinaryOp, self).__init__(parent=None)
         self.op = None
         self.left = None
         self.right = None
-        self.children = []
 
     def printNode(self):
         print("BinaryOp " + str(self.op))
@@ -72,9 +75,9 @@ class CompoundLiteral(ASTNode):
 
 class Constant(ASTNode):
     def __init__(self):
+        super(Constant, self).__init__(parent=None)
         self.type = None
         self.value = None
-        self.children = {}
 
     def printNode(self):
         print("Constant " + str(self.type) + " " + str(self.value))
@@ -146,8 +149,8 @@ class Goto(ASTNode):
 
 class ID(ASTNode):
     def __init__(self, name):
+        super(ID, self).__init__(parent=None)
         self.name = name
-        self.children = {}
 
     def printNode(self):
         print("Identifier " + str(self.name))
@@ -183,8 +186,8 @@ class Ptrdecl(ASTNode):
 
 class Return(ASTNode):
     def __init__(self, expr=None):
+        super(Return, self).__init__(parent=None)
         self.expr = expr
-        self.children = []
 
     def printNode(self):
         print("Return")
