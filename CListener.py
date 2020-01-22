@@ -32,7 +32,7 @@ class CListener(ParseTreeListener):
                 else:
                     self.ast.lastNode.right = constant
                     self.ast.lastNode.children.append(constant)
-                    #do I need to update last node if i know that constants/identifiers wont have children?
+                    # do I need to update last node if i know that constants/identifiers wont have children?
         elif ctx.Identifier() is not None:
             identifier = ID(ctx.children[0].getText())
             identifier.depth = self.ast.lastNode.depth + 1;
@@ -113,7 +113,7 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#multiplicativeExpression.
     def enterMultiplicativeExpression(self, ctx: CParser.MultiplicativeExpressionContext):
-        if ctx.getChildCount() == 1:
+        if ctx.getChildCount() == 1:  # do i need this?
             return
         binaryOp = BinaryOp()
         if ctx.Star() is not None:
@@ -255,12 +255,20 @@ class CListener(ParseTreeListener):
         pass
 
     # Enter a parse tree produced by CParser#declaration.
-    def enterDeclaration(self, ctx: CParser.DeclarationContext):
-        pass
+    def enterDeclaration(self):
+        declNode = Decl()
+        if not self.ast.hasRoot():
+            self.ast.root = declNode
+        else:
+            declNode.depth = self.ast.lastNode.depth + 1
+            self.ast.lastNode.children.append(declNode)
+        self.ast.lastNode = declNode
 
     # Exit a parse tree produced by CParser#declaration.
     def exitDeclaration(self, ctx: CParser.DeclarationContext):
-        pass
+        if self.ast.lastNode.depth is 0 and self.ast.hasRoot():
+            self.ast.root = None
+
 
     # Enter a parse tree produced by CParser#declarationSpecifiers.
     def enterDeclarationSpecifiers(self, ctx: CParser.DeclarationSpecifiersContext):
@@ -312,7 +320,21 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#typeSpecifier.
     def enterTypeSpecifier(self, ctx: CParser.TypeSpecifierContext):
-        pass
+        if getattr(self.ast.lastNode, "type", None) is not None:
+            if ctx.Bool():
+                self.ast.lastNode.type = "bool"
+            if ctx.Char():
+                self.ast.lastNode.type = "char"
+            if ctx.Double():
+                self.ast.lastNode.type = "double"
+            if ctx.Float():
+                self.ast.lastNode.type = "float"
+            if ctx.Int():
+                self.ast.lastNode.type = "int"
+            if ctx.Long():
+                self.ast.lastNode.type = "long"
+            if ctx.Short():
+                self.ast.lastNode.type = "short"
 
     # Exit a parse tree produced by CParser#typeSpecifier.
     def exitTypeSpecifier(self, ctx: CParser.TypeSpecifierContext):
@@ -448,7 +470,8 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#directDeclarator.
     def enterDirectDeclarator(self, ctx: CParser.DirectDeclaratorContext):
-        pass
+        if getattr(self.ast.lastNode, "name", None):
+            self.ast.lastNode.name = ctx.getText()
 
     # Exit a parse tree produced by CParser#directDeclarator.
     def exitDirectDeclarator(self, ctx: CParser.DirectDeclaratorContext):
@@ -727,15 +750,14 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#compilationUnit.
     def enterCompilationUnit(self, ctx: CParser.CompilationUnitContext):
-        print("Entering compilation unit")
-
+        pass
     # Exit a parse tree produced by CParser#compilationUnit.
     def exitCompilationUnit(self, ctx: CParser.CompilationUnitContext):
-        print("Exiting compilation unit")
-
+        pass
     # Enter a parse tree produced by CParser#translationUnit.
     def enterTranslationUnit(self, ctx: CParser.TranslationUnitContext):
-        print("Entering translation unit")
+        if not self.ast.hasRoot():
+            self.ast.root = TreeRoot()
 
     # Exit a parse tree produced by CParser#translationUnit.
     def exitTranslationUnit(self, ctx: CParser.TranslationUnitContext):

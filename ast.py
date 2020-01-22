@@ -88,7 +88,17 @@ class Continue(ASTNode):
 
 
 class Decl(ASTNode):
-    pass
+    def __init__(self):
+        super(Decl, self).__init__(parent=None)
+        self.name = None
+        self.quals = []  # e.g. const, volatile, static
+        self.funcspec = []  # e.g. inline
+        self.storage = []  # e.g. extern, register etc.
+        self.initialval = None
+
+    def printNode(self):
+        print("Declaration: " + self.name + ", " + self.quals + ", " + self.funcspec + ", " + self.storage +
+              ", initval= " + self.initialval)
 
 
 class DeclList(ASTNode):
@@ -206,6 +216,10 @@ class Switch(ASTNode):
 
 
 class TernaryOp(ASTNode):
+    pass
+
+
+class TreeRoot(ASTNode):
     pass
 
 
