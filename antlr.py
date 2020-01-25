@@ -19,7 +19,7 @@ def main(argv):
     parser = CParser(stream)
 
     # parse tree
-    tree = parser.jumpStatement()
+    tree = parser.assignmentExpression()
 
     ast = AST()
 

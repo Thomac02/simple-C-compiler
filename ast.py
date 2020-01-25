@@ -1,7 +1,7 @@
 class AST:
     def __init__(self):
         self.root = None
-        self.lastNode = self.root
+        self.currentnode = self.root
 
     def hasRoot(self):
         return self.root is not None
@@ -39,7 +39,14 @@ class ArrayRef(ASTNode):
 
 
 class Assignment(ASTNode):
-    pass
+    def __init__(self):
+        super(Assignment, self).__init__(parent=None)
+        self.op = None
+        self.lvalue = None
+        self.rvalue = None
+
+    def printNode(self):
+        print("Assignment " + str(self.op))
 
 
 class BinaryOp(ASTNode):
@@ -220,7 +227,11 @@ class TernaryOp(ASTNode):
 
 
 class TreeRoot(ASTNode):
-    pass
+    def __init__(self):
+        super(TreeRoot, self).__init__(parent=None)
+
+    def printNode(self):
+        print("Tree Root")
 
 
 class TypeDecl(ASTNode):
