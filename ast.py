@@ -1,13 +1,14 @@
 class AST:
-    def __init__(self):
+    def __init__(self, input):
         self.root = None
         self.currentnode = self.root
+        self.input = input  # name of the program
 
     def hasRoot(self):
         return self.root is not None
 
     def printNodes(self, node):
-        formatspace = "  "
+        formatspace = "    "
         if node is not None:
             node.printNode()
             for child in node.children:
@@ -73,7 +74,12 @@ class Cast(ASTNode):
 
 
 class Compound(ASTNode):
-    pass
+    def __init__(self):
+        super(Compound, self).__init__(parent=None)
+        self.block_items = []
+
+    def printNode(self):
+        print("Compound statement:")
 
 
 class CompoundLiteral(ASTNode):
@@ -109,7 +115,7 @@ class Decl(ASTNode):
         if self.initialval is not None:
             print(" = ", self.initialval.value)
         else:
-            print("\n")
+            print("")
 
 
 class DeclList(ASTNode):
@@ -166,6 +172,9 @@ class FuncDef(ASTNode):
         self.decl = None
         self.param_decls = []
         self.body = None
+
+    def printNode(self):
+        print("Function def:")
 
 
 class Goto(ASTNode):
@@ -237,9 +246,10 @@ class TernaryOp(ASTNode):
 class TreeRoot(ASTNode):
     def __init__(self):
         super(TreeRoot, self).__init__(parent=None)
+        self.name = None
 
     def printNode(self):
-        print("Tree Root")
+        print(self.name)
 
 
 class TypeDecl(ASTNode):

@@ -32,6 +32,9 @@ class CListener(ParseTreeListener):
                 self.ast.currentnode.children.append(ASTNode)
         elif isinstance(self.ast.currentnode, Decl):  # for declaration initval
             self.ast.currentnode.initialval = ASTNode
+        elif isinstance(self.ast.currentnode, Return):
+            self.ast.currentnode.expr = ASTNode
+            self.ast.currentnode.children.append(ASTNode)
             # do I need to update last node if i know that constants/identifiers wont have children?
 
     # Enter a parse tree produced by CParser#primaryExpression.
@@ -260,13 +263,16 @@ class CListener(ParseTreeListener):
 
     # Exit a parse tree produced by CParser#assignmentExpression.
     def exitAssignmentExpression(self, ctx: CParser.AssignmentExpressionContext):
-        pass
+        if ctx.getChildCount() < 2:
+            return
+        if isinstance(self.ast.currentnode.parent, Compound):
+            self.ast.currentnode.parent.block_items.append(self.ast.currentnode)
+        self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#assignmentOperator.
     def enterAssignmentOperator(self, ctx: CParser.AssignmentOperatorContext):
         if ctx.Assign() is not None:
             self.ast.currentnode.op = "="
-            print(self.ast.currentnode)
         elif ctx.DivAssign() is not None:
             self.ast.currentnode.op = "/="
         elif ctx.ModAssign() is not None:
@@ -371,9 +377,8 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#typeSpecifier.
     def enterTypeSpecifier(self, ctx: CParser.TypeSpecifierContext):
-        print(self.ast.currentnode)
-        if getattr(self.ast.currentnode, "type", False) is not False:  # getattr will return None as either the default
-            print(self.ast.currentnode)  # or if the attribute has a none value
+        if getattr(self.ast.currentnode, "type", False) is not False:
+            # getattr will return None as either the default or if the attribute has a none value
             if ctx.Bool():
                 self.ast.currentnode.type = "bool"
             if ctx.Char():
@@ -717,11 +722,19 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#compoundStatement.
     def enterCompoundStatement(self, ctx: CParser.CompoundStatementContext):
-        pass
+        compoundnode = Compound()
+        compoundnode.depth = self.ast.currentnode.depth + 1
+        self.ast.currentnode.children.append(compoundnode)  # need to think about the order of these and if it matters
+        compoundnode.parent = self.ast.currentnode
+        self.ast.currentnode = compoundnode
 
     # Exit a parse tree produced by CParser#compoundStatement.
     def exitCompoundStatement(self, ctx: CParser.CompoundStatementContext):
-        pass
+        if ctx.getChildCount() < 2:
+            return
+        #for node in self.ast.currentnode.block_items:
+         #   self.ast.currentnode.children.append(node)
+        self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#blockItemList.
     def enterBlockItemList(self, ctx: CParser.BlockItemListContext):
@@ -798,7 +811,11 @@ class CListener(ParseTreeListener):
 
     # Exit a parse tree produced by CParser#jumpStatement.
     def exitJumpStatement(self, ctx: CParser.JumpStatementContext):
-        pass
+        if ctx.getChildCount() < 2:
+            return
+        if isinstance(self.ast.currentnode.parent, Compound):
+            self.ast.currentnode.parent.block_items.append(self.ast.currentnode)
+        self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#compilationUnit.
     def enterCompilationUnit(self, ctx: CParser.CompilationUnitContext):
@@ -812,6 +829,7 @@ class CListener(ParseTreeListener):
     def enterTranslationUnit(self, ctx: CParser.TranslationUnitContext):
         if not self.ast.hasRoot():
             treeroot = TreeRoot()
+            treeroot.name = self.ast.input
             self.ast.root = treeroot
             self.ast.currentnode = treeroot
 
@@ -830,9 +848,12 @@ class CListener(ParseTreeListener):
     # Enter a parse tree produced by CParser#functionDefinition.
     def enterFunctionDefinition(self, ctx: CParser.FunctionDefinitionContext):
         funcdef = FuncDef()
+        funcdef.depth = self.ast.currentnode.depth + 1
+        # TODO: Make a helper function like "set_relationship" to set parent, child and depth
         funcdef.parent = self.ast.currentnode
         self.ast.currentnode.children.append(funcdef)
         decl = Decl()
+        decl.depth = funcdef.depth + 1
         funcdef.children.append(decl)
         self.ast.currentnode = decl
         self.ast.currentnode.parent = funcdef

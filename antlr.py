@@ -21,7 +21,7 @@ def main(argv):
     # parse tree
     tree = parser.translationUnit()
 
-    ast = AST()
+    ast = AST(argv[1])
 
     clistener = CListener(ast)
     walker = ParseTreeWalker()
