@@ -13,6 +13,27 @@ class CListener(ParseTreeListener):
     def __init__(self, ast):
         self.ast = ast
 
+    # Helper functions
+    # for assigning left and right of binaryop/assignment
+    def assign_left_and_right(self, ASTNode):
+        if isinstance(self.ast.currentnode, BinaryOp):
+            if self.ast.currentnode.left is None:
+                self.ast.currentnode.left = ASTNode
+                self.ast.currentnode.children.append(ASTNode)
+            else:
+                self.ast.currentnode.right = ASTNode
+                self.ast.currentnode.children.append(ASTNode)
+        elif isinstance(self.ast.currentnode, Assignment):  # assignment - can i assume this?
+            if self.ast.currentnode.lvalue is None:
+                self.ast.currentnode.lvalue = ASTNode
+                self.ast.currentnode.children.append(ASTNode)
+            else:
+                self.ast.currentnode.rvalue = ASTNode
+                self.ast.currentnode.children.append(ASTNode)
+        elif isinstance(self.ast.currentnode, Decl):  # for declaration initval
+            self.ast.currentnode.initialval = ASTNode
+            # do I need to update last node if i know that constants/identifiers wont have children?
+
     # Enter a parse tree produced by CParser#primaryExpression.
     def enterPrimaryExpression(self, ctx: CParser.PrimaryExpressionContext):
         # this whole function needs to change, currently relies on previous node being binary op when it could
@@ -27,38 +48,11 @@ class CListener(ParseTreeListener):
                 constant.type = "float"
             else:
                 constant.type = "int"
-            if isinstance(self.ast.currentnode, BinaryOp):
-                if self.ast.currentnode.left is None:
-                    self.ast.currentnode.left = constant
-                    self.ast.currentnode.children.append(constant)
-                else:
-                    self.ast.currentnode.right = constant
-                    self.ast.currentnode.children.append(constant)
-            else:  # assignment - can i assume this?
-                if self.ast.currentnode.lvalue is None:
-                    self.ast.currentnode.lvalue = constant
-                    self.ast.currentnode.children.append(constant)
-                else:
-                    self.ast.currentnode.rvalue = constant
-                    self.ast.currentnode.children.append(constant)
-                    # do I need to update last node if i know that constants/identifiers wont have children?
+            self.assign_left_and_right(constant)
         elif ctx.Identifier() is not None:
             identifier = ID(ctx.children[0].getText())
             identifier.depth = self.ast.currentnode.depth + 1;
-            if isinstance(self.ast.currentnode, BinaryOp):
-                if self.ast.currentnode.left is None:
-                    self.ast.currentnode.left = identifier
-                    self.ast.currentnode.children.append(identifier)
-                else:
-                    self.ast.currentnode.right = identifier
-                    self.ast.currentnode.children.append(identifier)
-            else:  # assignment - can i assume this?
-                if self.ast.currentnode.lvalue is None:
-                    self.ast.currentnode.lvalue = identifier
-                    self.ast.currentnode.children.append(identifier)
-                else:
-                    self.ast.currentnode.rvalue = identifier
-                    self.ast.currentnode.children.append(identifier)
+            self.assign_left_and_right(identifier)
 
     # Exit a parse tree produced by CParser#primaryExpression.
     def exitPrimaryExpression(self, ctx: CParser.PrimaryExpressionContext):
@@ -130,7 +124,7 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#multiplicativeExpression.
     def enterMultiplicativeExpression(self, ctx: CParser.MultiplicativeExpressionContext):
-        if ctx.getChildCount() == 1:  # do i need this?
+        if ctx.getChildCount() < 2:  # do i need this?
             return
         binaryOp = BinaryOp()
         if ctx.Star() is not None:
@@ -154,7 +148,7 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#additiveExpression.
     def enterAdditiveExpression(self, ctx: CParser.AdditiveExpressionContext):
-        if ctx.getChildCount() == 1:
+        if ctx.getChildCount() < 2:
             return
         binaryOp = BinaryOp()
         if ctx.Plus() is not None:
@@ -248,10 +242,17 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#assignmentExpression.
     def enterAssignmentExpression(self, ctx: CParser.AssignmentExpressionContext):
+        if ctx.getChildCount() < 2:
+            return
         assignmentNode = Assignment()
-        treeroot = TreeRoot()
-        self.ast.root = treeroot
-        self.ast.currentnode = treeroot
+
+        # TESTING - remove when done
+        if not self.ast.hasRoot():
+            treeroot = TreeRoot()
+            self.ast.root = treeroot
+            self.ast.currentnode = treeroot
+        #############################
+
         assignmentNode.depth = self.ast.currentnode.depth + 1
         self.ast.currentnode.children.append(assignmentNode)
         assignmentNode.parent = self.ast.currentnode
@@ -265,7 +266,7 @@ class CListener(ParseTreeListener):
     def enterAssignmentOperator(self, ctx: CParser.AssignmentOperatorContext):
         if ctx.Assign() is not None:
             self.ast.currentnode.op = "="
-            print(self.ast.currentnode.op)
+            print(self.ast.currentnode)
         elif ctx.DivAssign() is not None:
             self.ast.currentnode.op = "/="
         elif ctx.ModAssign() is not None:
@@ -309,7 +310,7 @@ class CListener(ParseTreeListener):
         pass
 
     # Enter a parse tree produced by CParser#declaration.
-    def enterDeclaration(self):
+    def enterDeclaration(self, ctx: CParser.DeclarationContext):
         declNode = Decl()
         declNode.depth = self.ast.currentnode.depth + 1
         self.ast.currentnode.children.append(declNode)
@@ -354,11 +355,7 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#initDeclarator.
     def enterInitDeclarator(self, ctx: CParser.InitDeclaratorContext):
-        assignNode = Assignment()
-        assignNode.depth = self.ast.currentnode.depth + 1
-        self.ast.currentnode.children.append(assignNode)
-        assignNode.parent = self.ast.currentnode
-        self.ast.currentnode = assignNode
+        pass
 
     # Exit a parse tree produced by CParser#initDeclarator.
     def exitInitDeclarator(self, ctx: CParser.InitDeclaratorContext):
@@ -374,7 +371,9 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#typeSpecifier.
     def enterTypeSpecifier(self, ctx: CParser.TypeSpecifierContext):
-        if getattr(self.ast.currentnode, "type", None) is not None:
+        print(self.ast.currentnode)
+        if getattr(self.ast.currentnode, "type", False) is not False:  # getattr will return None as either the default
+            print(self.ast.currentnode)  # or if the attribute has a none value
             if ctx.Bool():
                 self.ast.currentnode.type = "bool"
             if ctx.Char():
@@ -524,12 +523,13 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#directDeclarator.
     def enterDirectDeclarator(self, ctx: CParser.DirectDeclaratorContext):
-        if getattr(self.ast.currentnode, "name", None):
+        if getattr(self.ast.currentnode, "name", False) is not False:
             self.ast.currentnode.name = ctx.getText()
 
     # Exit a parse tree produced by CParser#directDeclarator.
     def exitDirectDeclarator(self, ctx: CParser.DirectDeclaratorContext):
-        pass
+        if ctx.getChildCount() > 1 and isinstance(self.ast.currentnode.parent, FuncDef):
+            self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#gccDeclaratorExtension.
     def enterGccDeclaratorExtension(self, ctx: CParser.GccDeclaratorExtensionContext):
@@ -829,7 +829,13 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#functionDefinition.
     def enterFunctionDefinition(self, ctx: CParser.FunctionDefinitionContext):
-        pass
+        funcdef = FuncDef()
+        funcdef.parent = self.ast.currentnode
+        self.ast.currentnode.children.append(funcdef)
+        decl = Decl()
+        funcdef.children.append(decl)
+        self.ast.currentnode = decl
+        self.ast.currentnode.parent = funcdef
 
     # Exit a parse tree produced by CParser#functionDefinition.
     def exitFunctionDefinition(self, ctx: CParser.FunctionDefinitionContext):

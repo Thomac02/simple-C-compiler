@@ -101,11 +101,15 @@ class Decl(ASTNode):
         self.quals = []  # e.g. const, volatile, static
         self.funcspec = []  # e.g. inline
         self.storage = []  # e.g. extern, register etc.
+        self.type = None
         self.initialval = None
 
     def printNode(self):
-        print("Declaration: " + self.name + ", " + self.quals + ", " + self.funcspec + ", " + self.storage +
-              ", initval= " + self.initialval)
+        print("Declaration: " + str(self.type) + " " + str(self.name), end=" ")
+        if self.initialval is not None:
+            print(" = ", self.initialval.value)
+        else:
+            print("\n")
 
 
 class DeclList(ASTNode):
@@ -157,7 +161,11 @@ class FuncDecl(ASTNode):
 
 
 class FuncDef(ASTNode):
-    pass
+    def __init__(self):
+        super(FuncDef, self).__init__(parent=None)
+        self.decl = None
+        self.param_decls = []
+        self.body = None
 
 
 class Goto(ASTNode):
