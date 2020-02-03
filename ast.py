@@ -47,6 +47,10 @@ class Assignment(ASTNode):
         self.rvalue = None
 
     def printNode(self):
+        if isinstance(self.parent, If) and self.parent.iftrue == self:
+            print("True?")
+        elif isinstance(self.parent, If) and self.parent.iffalse == self:
+            print("False?")
         print("Assignment " + str(self.op))
 
 
@@ -58,6 +62,8 @@ class BinaryOp(ASTNode):
         self.right = None
 
     def printNode(self):
+        if isinstance(self.parent, If) and self.parent.cond == self:
+            print("Condition: ", end=" ")
         print("BinaryOp " + str(self.op))
 
 
@@ -195,7 +201,14 @@ class IdentifierType(ASTNode):
 
 
 class If(ASTNode):
-    pass
+    def __init__(self):
+        super(If, self).__init__(parent=None)
+        self.cond = None
+        self.iftrue = None
+        self.iffalse = None
+
+    def printNode(self):
+        print("If")
 
 
 class InitList(ASTNode):

@@ -3,7 +3,8 @@ int b;
 
 int main(){
 	b = a + 5;
-	a = 0;
+	if(b < a)
+		b -= a;
 	return 0;
 }	
 

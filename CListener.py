@@ -44,7 +44,7 @@ class CListener(ParseTreeListener):
         if ctx.Constant() is not None:  # 'if X is not None' is faster than 'if X'
             constant = Constant()
             constant.value = ctx.children[0].getText()
-            constant.depth = self.ast.currentnode.depth + 1;
+            constant.depth = self.ast.currentnode.depth + 1
             if constant.value.find("'") != -1:
                 constant.type = "char"
             elif constant.value.find(".") != -1:
@@ -181,11 +181,32 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#relationalExpression.
     def enterRelationalExpression(self, ctx: CParser.RelationalExpressionContext):
-        pass
+        if ctx.getChildCount() < 2:
+            return
+        binaryOp = BinaryOp()
+        if ctx.Greater() is not None:
+            binaryOp.op = ">"
+        elif ctx.GreaterEqual() is not None:
+            binaryOp.op = ">="
+        elif ctx.Less() is not None:
+            binaryOp.op = "<"
+        elif ctx.LessEqual() is not None:
+            binaryOp.op = "<="
+        else:
+            return
+        binaryOp.depth = self.ast.currentnode.depth + 1
+        self.ast.currentnode.children.append(binaryOp)
+        binaryOp.parent = self.ast.currentnode
+        self.ast.currentnode = binaryOp
 
     # Exit a parse tree produced by CParser#relationalExpression.
     def exitRelationalExpression(self, ctx: CParser.RelationalExpressionContext):
-        pass
+        if ctx.getChildCount() < 2:
+            return
+        if isinstance(self.ast.currentnode.parent, If):
+            if self.ast.currentnode.parent.cond is None:
+                self.ast.currentnode.parent.cond = self.ast.currentnode
+        self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#equalityExpression.
     def enterEqualityExpression(self, ctx: CParser.EqualityExpressionContext):
@@ -267,6 +288,11 @@ class CListener(ParseTreeListener):
             return
         if isinstance(self.ast.currentnode.parent, Compound):
             self.ast.currentnode.parent.block_items.append(self.ast.currentnode)
+        elif isinstance(self.ast.currentnode.parent, If):
+            if self.ast.currentnode.parent.iftrue is None:
+                self.ast.currentnode.parent.iftrue = self.ast.currentnode
+            elif self.ast.currentnode.parent.iffalse is None:
+                self.ast.currentnode.parent.iffalse = self.ast.currentnode
         self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#assignmentOperator.
@@ -732,8 +758,8 @@ class CListener(ParseTreeListener):
     def exitCompoundStatement(self, ctx: CParser.CompoundStatementContext):
         if ctx.getChildCount() < 2:
             return
-        #for node in self.ast.currentnode.block_items:
-         #   self.ast.currentnode.children.append(node)
+        # for node in self.ast.currentnode.block_items:
+        #   self.ast.currentnode.children.append(node)
         self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#blockItemList.
@@ -762,11 +788,22 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#selectionStatement.
     def enterSelectionStatement(self, ctx: CParser.SelectionStatementContext):
-        pass
+        ifnode = If()
+        ifnode.depth = self.ast.currentnode.depth + 1
+        self.ast.currentnode.children.append(ifnode)
+        ifnode.parent = self.ast.currentnode
+        self.ast.currentnode = ifnode
 
     # Exit a parse tree produced by CParser#selectionStatement.
     def exitSelectionStatement(self, ctx: CParser.SelectionStatementContext):
-        pass
+        if ctx.getChildCount() < 2:
+            return
+        if isinstance(self.ast.currentnode.parent, If):
+            if self.ast.currentnode.parent.iftrue is None:
+                self.ast.currentnode.parent.iftrue = self.ast.currentnode
+            else:
+                self.ast.currentnode.parent.iffalse = self.ast.currentnode
+        self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#iterationStatement.
     def enterIterationStatement(self, ctx: CParser.IterationStatementContext):
