@@ -17,18 +17,70 @@ class AST:
         else:
             return
 
+    # TESTING PRINT
+    def print_tree(self, current_node, childattr='children', nameattr='name', indent='', last='updown'):
+
+        # need to go through each type of AST node. Surely there's a more elegant way than this?
+        if hasattr(current_node, nameattr):
+            name = lambda node: getattr(node, nameattr)
+        else:
+            name = lambda node: str(node)
+
+        children = lambda node: getattr(node, childattr)
+        nb_children = lambda node: sum(nb_children(child) for child in children(node)) + 1
+        size_branch = {child: nb_children(child) for child in children(current_node)}
+
+        """ Creation of balanced lists for "up" branch and "down" branch. """
+        up = sorted(children(current_node), key=lambda node: nb_children(node))
+        down = []
+        while up and sum(size_branch[node] for node in down) < sum(size_branch[node] for node in up):
+            down.append(up.pop())
+
+        """ Printing of "up" branch. """
+        for child in up:
+            next_last = 'up' if up.index(child) == 0 else ''
+            next_indent = '{0}{1}{2}'.format(indent, ' ' if 'up' in last else '│', ' ' * len(name(current_node)))
+            self.print_tree(child, childattr, nameattr, next_indent, next_last)
+
+        """ Printing of current node. """
+        if last == 'up':
+            start_shape = '┌'
+        elif last == 'down':
+            start_shape = '└'
+        elif last == 'updown':
+            start_shape = ' '
+        else:
+            start_shape = '├'
+
+        if up:
+            end_shape = '┤'
+        elif down:
+            end_shape = '┐'
+        else:
+            end_shape = ''
+
+        print('{0}{1}{2}{3}'.format(indent, start_shape, name(current_node), end_shape))
+
+        """ Printing of "down" branch. """
+        for child in down:
+            next_last = 'down' if down.index(child) is len(down) - 1 else ''
+            next_indent = '{0}{1}{2}'.format(indent, ' ' if 'down' in last else '│', ' ' * len(name(current_node)))
+            self.print_tree(child, childattr, nameattr, next_indent, next_last)
+
 
 # We need to give the AST data structure some idea of the current 'active' node, so we know what
 # to add a child to in the listener
 
 class ASTNode:
     def __init__(self, parent=None):
+        self.name = ""
         self.parent = parent
         self.children = []
         self.depth = 0
 
     def printNode(self):
         pass
+
 
 
 class ArrayDecl(ASTNode):
@@ -109,7 +161,6 @@ class Continue(ASTNode):
 class Decl(ASTNode):
     def __init__(self):
         super(Decl, self).__init__(parent=None)
-        self.name = None
         self.quals = []  # e.g. const, volatile, static
         self.funcspec = []  # e.g. inline
         self.storage = []  # e.g. extern, register etc.
@@ -188,9 +239,8 @@ class Goto(ASTNode):
 
 
 class ID(ASTNode):
-    def __init__(self, name):
+    def __init__(self):
         super(ID, self).__init__(parent=None)
-        self.name = name
 
     def printNode(self):
         print("Identifier " + str(self.name))
@@ -291,3 +341,5 @@ class While(ASTNode):
 
 class Pragma(ASTNode):
     pass
+
+
