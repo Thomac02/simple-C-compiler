@@ -7,20 +7,15 @@ class AST:
     def hasRoot(self):
         return self.root is not None
 
-    def printNodes(self, node):
-        formatspace = "    "
+    def prepare_tree_for_printing(self, node):
         if node is not None:
-            node.printNode()
+            node.prepare_to_print()
             for child in node.children:
-                print(formatspace * child.depth, end=' ')
-                self.printNodes(child)
-        else:
-            return
+                self.prepare_tree_for_printing(child)
 
     # TESTING PRINT
     def print_tree(self, current_node, childattr='children', nameattr='name', indent='', last='updown'):
 
-        # need to go through each type of AST node. Surely there's a more elegant way than this?
         if hasattr(current_node, nameattr):
             name = lambda node: getattr(node, nameattr)
         else:
@@ -78,9 +73,8 @@ class ASTNode:
         self.children = []
         self.depth = 0
 
-    def printNode(self):
+    def prepare_to_print(self):
         pass
-
 
 
 class ArrayDecl(ASTNode):
@@ -97,13 +91,15 @@ class Assignment(ASTNode):
         self.op = None
         self.lvalue = None
         self.rvalue = None
+        self.trueblock = False
+        self.falseblock = False
 
-    def printNode(self):
-        if isinstance(self.parent, If) and self.parent.iftrue == self:
-            print("True?")
-        elif isinstance(self.parent, If) and self.parent.iffalse == self:
-            print("False?")
-        print("Assignment " + str(self.op))
+    def prepare_to_print(self):
+        if self.trueblock:
+            self.name += "True? "
+        elif self.falseblock:
+            self.name += "False? "
+        self.name += "Assignment " + str(self.op) + " "
 
 
 class BinaryOp(ASTNode):
@@ -112,11 +108,12 @@ class BinaryOp(ASTNode):
         self.op = None
         self.left = None
         self.right = None
+        self.iscond = False
 
-    def printNode(self):
-        if isinstance(self.parent, If) and self.parent.cond == self:
-            print("Condition: ", end=" ")
-        print("BinaryOp " + str(self.op))
+    def prepare_to_print(self):
+        if self.iscond:
+            self.name += "Condition: "
+        self.name += "BinaryOp " + str(self.op) + " "
 
 
 class Break(ASTNode):
@@ -136,8 +133,8 @@ class Compound(ASTNode):
         super(Compound, self).__init__(parent=None)
         self.block_items = []
 
-    def printNode(self):
-        print("Compound statement:")
+    def prepare_to_print(self):
+        self.name += "Compound statement: "
 
 
 class CompoundLiteral(ASTNode):
@@ -150,8 +147,8 @@ class Constant(ASTNode):
         self.type = None
         self.value = None
 
-    def printNode(self):
-        print("Constant " + str(self.type) + " " + str(self.value))
+    def prepare_to_print(self):
+        self.name += "Constant " + str(self.type) + " " + str(self.value)
 
 
 class Continue(ASTNode):
@@ -167,12 +164,10 @@ class Decl(ASTNode):
         self.type = None
         self.initialval = None
 
-    def printNode(self):
-        print("Declaration: " + str(self.type) + " " + str(self.name), end=" ")
+    def prepare_to_print(self):
+        self.name = "Declaration: " + str(self.type) + " " + str(self.name)
         if self.initialval is not None:
-            print(" = ", self.initialval.value)
-        else:
-            print("")
+            self.name += " = " + self.initialval.value
 
 
 class DeclList(ASTNode):
@@ -230,8 +225,8 @@ class FuncDef(ASTNode):
         self.param_decls = []
         self.body = None
 
-    def printNode(self):
-        print("Function def:")
+    def prepare_to_print(self):
+        self.name += "Function def: " + self.decl.type + " " + self.decl.name
 
 
 class Goto(ASTNode):
@@ -242,8 +237,8 @@ class ID(ASTNode):
     def __init__(self):
         super(ID, self).__init__(parent=None)
 
-    def printNode(self):
-        print("Identifier " + str(self.name))
+    def prepare_to_print(self):
+        self.name = "Identifier " + self.name
 
 
 class IdentifierType(ASTNode):
@@ -257,8 +252,8 @@ class If(ASTNode):
         self.iftrue = None
         self.iffalse = None
 
-    def printNode(self):
-        print("If")
+    def prepare_to_print(self):
+        self.name += "If "
 
 
 class InitList(ASTNode):
@@ -286,8 +281,8 @@ class Return(ASTNode):
         super(Return, self).__init__(parent=None)
         self.expr = expr
 
-    def printNode(self):
-        print("Return")
+    def prepare_to_print(self):
+        self.name += "Return "
 
 
 class Struct(ASTNode):
@@ -310,9 +305,6 @@ class TreeRoot(ASTNode):
     def __init__(self):
         super(TreeRoot, self).__init__(parent=None)
         self.name = None
-
-    def printNode(self):
-        print(self.name)
 
 
 class TypeDecl(ASTNode):
@@ -341,5 +333,3 @@ class While(ASTNode):
 
 class Pragma(ASTNode):
     pass
-
-

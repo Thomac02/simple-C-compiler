@@ -21,13 +21,16 @@ def main(argv):
     # parse tree
     tree = parser.translationUnit()
 
+    # create the ast object, passing the name of the program to the constructor
     ast = AST(argv[1])
 
+    # create the listener and have it populate the ast
     clistener = CListener(ast)
     walker = ParseTreeWalker()
     walker.walk(clistener, tree)
 
-    # ast.printNodes(ast.root)
+    # print the ast
+    ast.prepare_tree_for_printing(ast.root)
     ast.print_tree(ast.root)
 
 
