@@ -26,10 +26,11 @@ class AST:
         size_branch = {child: nb_children(child) for child in children(current_node)}
 
         """ Creation of balanced lists for "up" branch and "down" branch. """
-        up = sorted(children(current_node), key=lambda node: nb_children(node))
+        # up = sorted(children(current_node), key=lambda node: nb_children(node))
+        up = children(current_node)  # sorted version got order wrong
         down = []
         while up and sum(size_branch[node] for node in down) < sum(size_branch[node] for node in up):
-            down.append(up.pop())
+            down.insert(0, up.pop())
 
         """ Printing of "up" branch. """
         for child in up:
@@ -77,8 +78,9 @@ class ASTNode:
         pass
 
 
-class ArrayDecl(ASTNode):
-    pass
+class ArrayDecl():
+    def __init__(self, decl):
+        self.decl = decl
 
 
 class ArrayRef(ASTNode):

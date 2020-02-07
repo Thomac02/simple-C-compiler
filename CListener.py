@@ -206,7 +206,7 @@ class CListener(ParseTreeListener):
         if isinstance(self.ast.currentnode.parent, If):
             if self.ast.currentnode.parent.cond is None:
                 self.ast.currentnode.parent.cond = self.ast.currentnode
-                self.ast.currentnode.cond = True
+                self.ast.currentnode.iscond = True
         self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#equalityExpression.
@@ -560,6 +560,8 @@ class CListener(ParseTreeListener):
         if getattr(self.ast.currentnode, "name", False) is not False and ctx.Identifier() is not None:
             self.ast.currentnode.name += ctx.getText() + " "
             print(ctx.getText())
+        elif ctx.children[1].getText() == "[":
+            arraydecl = ArrayDecl()
 
     # Exit a parse tree produced by CParser#directDeclarator.
     def exitDirectDeclarator(self, ctx: CParser.DirectDeclaratorContext):
