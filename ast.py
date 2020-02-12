@@ -7,6 +7,21 @@ class AST:
     def hasRoot(self):
         return self.root is not None
 
+    def set_node_relationship(self, child, parent=None, attribute=None, setcurrent=True):
+        if parent is None:
+            parent = self.currentnode
+        if attribute is not None:
+            currentstate = getattr(parent, attribute, False)  # currentstate is either false or value of attribute
+            if currentstate is not False:
+                if currentstate is not None and not isinstance(currentstate, list) and currentstate in parent.children:
+                    parent.children.remove(currentstate)
+                setattr(parent, attribute, child) if not isinstance(currentstate, list) else currentstate.append(child)
+        child.depth = parent.depth + 1
+        parent.children.append(child)
+        child.parent = parent
+        if setcurrent:
+            self.currentnode = child
+
     def prepare_tree_for_printing(self, node):
         if node is not None:
             node.prepare_to_print()
@@ -78,13 +93,25 @@ class ASTNode:
         pass
 
 
-class ArrayDecl():
-    def __init__(self, decl):
-        self.decl = decl
+class ArrayDecl(ASTNode):
+    def __init__(self):
+        super(ArrayDecl, self).__init__(parent=None)
+        self.type = None
+        self.dim = None
+        self.dim_quals = None
+
+    def prepare_to_print(self):
+        self.name += "ArrayDecl: "
 
 
 class ArrayRef(ASTNode):
-    pass
+    def __init__(self):
+        super(ArrayRef, self).__init__(parent=None)
+        self.id = None
+        self.index = None
+
+    def prepare_to_print(self):
+        self.name += "ArrayRef: "
 
 
 class Assignment(ASTNode):
@@ -160,6 +187,7 @@ class Continue(ASTNode):
 class Decl(ASTNode):
     def __init__(self):
         super(Decl, self).__init__(parent=None)
+        self.declname = None
         self.quals = []  # e.g. const, volatile, static
         self.funcspec = []  # e.g. inline
         self.storage = []  # e.g. extern, register etc.
@@ -167,9 +195,7 @@ class Decl(ASTNode):
         self.initialval = None
 
     def prepare_to_print(self):
-        self.name = "Declaration: " + str(self.type) + " " + str(self.name)
-        if self.initialval is not None:
-            self.name += " = " + self.initialval.value
+        self.name += "Declaration: " + str(self.declname) + " "
 
 
 class DeclList(ASTNode):
@@ -217,7 +243,13 @@ class FuncCall(ASTNode):
 
 
 class FuncDecl(ASTNode):
-    pass
+    def __init__(self):
+        super(FuncDecl, self).__init__(parent=None)
+        self.args = None
+        self.type = None
+
+    def prepare_to_print(self):
+        self.name += "FuncDecl: "
 
 
 class FuncDef(ASTNode):
@@ -228,7 +260,7 @@ class FuncDef(ASTNode):
         self.body = None
 
     def prepare_to_print(self):
-        self.name += "Function def: " + self.decl.type + " " + self.decl.name
+        self.name += "Function def: "
 
 
 class Goto(ASTNode):
@@ -259,7 +291,12 @@ class If(ASTNode):
 
 
 class InitList(ASTNode):
-    pass
+    def __init__(self):
+        super(InitList, self).__init__(parent=None)
+        self.expr = []
+
+    def prepare_to_print(self):
+        self.name += "InitList: "
 
 
 class Label(ASTNode):
@@ -310,7 +347,14 @@ class TreeRoot(ASTNode):
 
 
 class TypeDecl(ASTNode):
-    pass
+    def __init__(self):
+        super(TypeDecl, self).__init__(parent=None)
+        self.declname = None
+        self.quals = None
+        self.type = None
+
+    def prepare_to_print(self):
+        self.name += "TypeDecl: " + self.type
 
 
 class Typedef(ASTNode):

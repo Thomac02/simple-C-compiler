@@ -17,23 +17,27 @@ class CListener(ParseTreeListener):
     def assign_left_and_right(self, ASTNode):
         if isinstance(self.ast.currentnode, BinaryOp):
             if self.ast.currentnode.left is None:
-                self.ast.currentnode.left = ASTNode
-                self.ast.currentnode.children.append(ASTNode)
+                self.ast.set_node_relationship(ASTNode, None, "left")
             else:
-                self.ast.currentnode.right = ASTNode
-                self.ast.currentnode.children.append(ASTNode)
+                self.ast.set_node_relationship(ASTNode, None, "right")
         elif isinstance(self.ast.currentnode, Assignment):
             if self.ast.currentnode.lvalue is None:
-                self.ast.currentnode.lvalue = ASTNode
-                self.ast.currentnode.children.append(ASTNode)
+                self.ast.set_node_relationship(ASTNode, None, "lvalue")
             else:
-                self.ast.currentnode.rvalue = ASTNode
-                self.ast.currentnode.children.append(ASTNode)
+                self.ast.set_node_relationship(ASTNode, None, "rvalue")
         elif isinstance(self.ast.currentnode, Decl):  # for declaration initval
-            self.ast.currentnode.initialval = ASTNode
+            self.ast.set_node_relationship(ASTNode, None, "initialval")
+        elif isinstance(self.ast.currentnode, ArrayDecl):
+            self.ast.set_node_relationship(ASTNode, None, "dim")
+        elif isinstance(self.ast.currentnode, ArrayRef):
+            if self.ast.currentnode.id is None:
+                self.ast.set_node_relationship(ASTNode, None, "id")
+            else:
+                self.ast.set_node_relationship(ASTNode, None, "index")
         elif isinstance(self.ast.currentnode, Return):
-            self.ast.currentnode.expr = ASTNode
-            self.ast.currentnode.children.append(ASTNode)
+            self.ast.set_node_relationship(ASTNode, None, "expr")
+        elif isinstance(self.ast.currentnode, InitList):
+            self.ast.set_node_relationship(ASTNode, None, "expr")
             # do I need to update last node if i know that constants/identifiers wont have children?
 
     # Enter a parse tree produced by CParser#primaryExpression.
@@ -43,7 +47,6 @@ class CListener(ParseTreeListener):
         if ctx.Constant() is not None:  # 'if X is not None' is faster than 'if X'
             constant = Constant()
             constant.value = ctx.children[0].getText()
-            constant.depth = self.ast.currentnode.depth + 1
             if constant.value.find("'") != -1:
                 constant.type = "char"
             elif constant.value.find(".") != -1:
@@ -53,13 +56,12 @@ class CListener(ParseTreeListener):
             self.assign_left_and_right(constant)
         elif ctx.Identifier() is not None:
             identifier = ID()
-            identifier.depth = self.ast.currentnode.depth + 1;
             identifier.name += ctx.getText()
             self.assign_left_and_right(identifier)
 
     # Exit a parse tree produced by CParser#primaryExpression.
     def exitPrimaryExpression(self, ctx: CParser.PrimaryExpressionContext):
-        pass
+        self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#genericSelection.
     def enterGenericSelection(self, ctx: CParser.GenericSelectionContext):
@@ -87,11 +89,16 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#postfixExpression.
     def enterPostfixExpression(self, ctx: CParser.PostfixExpressionContext):
-        pass
+        if ctx.getChildCount() < 2:
+            return
+        arrayref = ArrayRef()
+        self.ast.set_node_relationship(arrayref)
 
     # Exit a parse tree produced by CParser#postfixExpression.
     def exitPostfixExpression(self, ctx: CParser.PostfixExpressionContext):
-        pass
+        if ctx.getChildCount() < 2:
+            return
+        self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#argumentExpressionList.
     def enterArgumentExpressionList(self, ctx: CParser.ArgumentExpressionListContext):
@@ -138,10 +145,7 @@ class CListener(ParseTreeListener):
             binaryOp.op = "%"
         else:
             return
-        binaryOp.depth = self.ast.currentnode.depth + 1
-        self.ast.currentnode.children.append(binaryOp)
-        binaryOp.parent = self.ast.currentnode
-        self.ast.currentnode = binaryOp
+        self.ast.set_node_relationship(binaryOp)
 
     # Exit a parse tree produced by CParser#multiplicativeExpression.
     def exitMultiplicativeExpression(self, ctx: CParser.MultiplicativeExpressionContext):
@@ -160,10 +164,7 @@ class CListener(ParseTreeListener):
             binaryOp.op = "-"
         else:
             return
-        binaryOp.depth = self.ast.currentnode.depth + 1
-        self.ast.currentnode.children.append(binaryOp)
-        binaryOp.parent = self.ast.currentnode
-        self.ast.currentnode = binaryOp
+        self.ast.set_node_relationship(binaryOp)
 
     # Exit a parse tree produced by CParser#additiveExpression.
     def exitAdditiveExpression(self, ctx: CParser.AdditiveExpressionContext):
@@ -194,10 +195,7 @@ class CListener(ParseTreeListener):
             binaryOp.op = "<="
         else:
             return
-        binaryOp.depth = self.ast.currentnode.depth + 1
-        self.ast.currentnode.children.append(binaryOp)
-        binaryOp.parent = self.ast.currentnode
-        self.ast.currentnode = binaryOp
+        self.ast.set_node_relationship(binaryOp)
 
     # Exit a parse tree produced by CParser#relationalExpression.
     def exitRelationalExpression(self, ctx: CParser.RelationalExpressionContext):
@@ -278,10 +276,7 @@ class CListener(ParseTreeListener):
             self.ast.currentnode = treeroot
         #############################
 
-        assignmentNode.depth = self.ast.currentnode.depth + 1
-        self.ast.currentnode.children.append(assignmentNode)
-        assignmentNode.parent = self.ast.currentnode
-        self.ast.currentnode = assignmentNode
+        self.ast.set_node_relationship(assignmentNode)
 
     # Exit a parse tree produced by CParser#assignmentExpression.
     def exitAssignmentExpression(self, ctx: CParser.AssignmentExpressionContext):
@@ -347,13 +342,13 @@ class CListener(ParseTreeListener):
     # Enter a parse tree produced by CParser#declaration.
     def enterDeclaration(self, ctx: CParser.DeclarationContext):
         declNode = Decl()
-        declNode.depth = self.ast.currentnode.depth + 1
-        self.ast.currentnode.children.append(declNode)
-        declNode.parent = self.ast.currentnode
-        self.ast.currentnode = declNode
+        self.ast.set_node_relationship(declNode)
 
     # Exit a parse tree produced by CParser#declaration.
     def exitDeclaration(self, ctx: CParser.DeclarationContext):
+        if not isinstance(self.ast.currentnode, Decl):
+            while not isinstance(self.ast.currentnode, Decl):
+                self.ast.currentnode = self.ast.currentnode.parent
         self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#declarationSpecifiers.
@@ -408,6 +403,9 @@ class CListener(ParseTreeListener):
     def enterTypeSpecifier(self, ctx: CParser.TypeSpecifierContext):
         if getattr(self.ast.currentnode, "type", False) is not False:
             # getattr will return None as either the default or if the attribute has a none value
+            typedecl = TypeDecl()
+            typedecl.declname = self.ast.currentnode.name
+            self.ast.set_node_relationship(typedecl, None, "type")
             if ctx.Bool():
                 self.ast.currentnode.type = "bool"
             if ctx.Char():
@@ -425,7 +423,7 @@ class CListener(ParseTreeListener):
 
     # Exit a parse tree produced by CParser#typeSpecifier.
     def exitTypeSpecifier(self, ctx: CParser.TypeSpecifierContext):
-        pass
+        self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#structOrUnionSpecifier.
     def enterStructOrUnionSpecifier(self, ctx: CParser.StructOrUnionSpecifierContext):
@@ -557,16 +555,29 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#directDeclarator.
     def enterDirectDeclarator(self, ctx: CParser.DirectDeclaratorContext):
-        if getattr(self.ast.currentnode, "name", False) is not False and ctx.Identifier() is not None:
-            self.ast.currentnode.name += ctx.getText() + " "
-            print(ctx.getText())
-        elif ctx.children[1].getText() == "[":
+        if getattr(self.ast.currentnode, "declname", False) is not False and ctx.Identifier() is not None:
+            self.ast.currentnode.declname = ctx.getText()
+        elif getattr(self.ast.currentnode.parent, "declname", False) is not False and ctx.Identifier() is not None:
+            self.ast.currentnode.parent.declname = ctx.getText()
+
+        if ctx.getChildCount() > 1 and ctx.children[1].getText() == "[":
             arraydecl = ArrayDecl()
+            arraydecl.type = self.ast.currentnode.type
+            self.ast.set_node_relationship(arraydecl.type, arraydecl, None, False)
+            self.ast.set_node_relationship(arraydecl, None, "type")
+
+            # TODO: Fix setting relationship in this case, I set the Decl type before (as child) and now overwriting it,
+            # which means that although the type is now changed, the first TypeDecl is still a child of the Decl.
+        elif ctx.getChildCount() > 1 and ctx.children[1].getText() == "(":
+            funcdecl = FuncDecl()
+            funcdecl.type = self.ast.currentnode.type
+            self.ast.set_node_relationship(funcdecl.type, funcdecl, None, False)
+            self.ast.set_node_relationship(funcdecl, None, "type")
 
     # Exit a parse tree produced by CParser#directDeclarator.
     def exitDirectDeclarator(self, ctx: CParser.DirectDeclaratorContext):
-        if ctx.getChildCount() > 1 and isinstance(self.ast.currentnode.parent, FuncDef):
-            self.ast.currentnode = self.ast.currentnode.parent
+        if isinstance(self.ast.currentnode, FuncDecl):
+            self.ast.currentnode = self.ast.currentnode.parent.parent
 
     # Enter a parse tree produced by CParser#gccDeclaratorExtension.
     def enterGccDeclaratorExtension(self, ctx: CParser.GccDeclaratorExtensionContext):
@@ -698,7 +709,10 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#initializerList.
     def enterInitializerList(self, ctx: CParser.InitializerListContext):
-        pass
+        if isinstance(self.ast.currentnode, InitList):
+            return
+        initlist = InitList()
+        self.ast.set_node_relationship(initlist)
 
     # Exit a parse tree produced by CParser#initializerList.
     def exitInitializerList(self, ctx: CParser.InitializerListContext):
@@ -755,10 +769,7 @@ class CListener(ParseTreeListener):
     # Enter a parse tree produced by CParser#compoundStatement.
     def enterCompoundStatement(self, ctx: CParser.CompoundStatementContext):
         compoundnode = Compound()
-        compoundnode.depth = self.ast.currentnode.depth + 1
-        self.ast.currentnode.children.append(compoundnode)  # need to think about the order of these and if it matters
-        compoundnode.parent = self.ast.currentnode
-        self.ast.currentnode = compoundnode
+        self.ast.set_node_relationship(compoundnode)
 
     # Exit a parse tree produced by CParser#compoundStatement.
     def exitCompoundStatement(self, ctx: CParser.CompoundStatementContext):
@@ -795,10 +806,7 @@ class CListener(ParseTreeListener):
     # Enter a parse tree produced by CParser#selectionStatement.
     def enterSelectionStatement(self, ctx: CParser.SelectionStatementContext):
         ifnode = If()
-        ifnode.depth = self.ast.currentnode.depth + 1
-        self.ast.currentnode.children.append(ifnode)
-        ifnode.parent = self.ast.currentnode
-        self.ast.currentnode = ifnode
+        self.ast.set_node_relationship(ifnode)
 
     # Exit a parse tree produced by CParser#selectionStatement.
     def exitSelectionStatement(self, ctx: CParser.SelectionStatementContext):
@@ -847,10 +855,7 @@ class CListener(ParseTreeListener):
     def enterJumpStatement(self, ctx: CParser.JumpStatementContext):
         if ctx.Return():
             jumpNode = Return()
-        jumpNode.depth = self.ast.currentnode.depth + 1
-        self.ast.currentnode.children.append(jumpNode)
-        jumpNode.parent = self.ast.currentnode
-        self.ast.currentnode = jumpNode
+        self.ast.set_node_relationship(jumpNode)
 
     # Exit a parse tree produced by CParser#jumpStatement.
     def exitJumpStatement(self, ctx: CParser.JumpStatementContext):
@@ -891,22 +896,17 @@ class CListener(ParseTreeListener):
     # Enter a parse tree produced by CParser#functionDefinition.
     def enterFunctionDefinition(self, ctx: CParser.FunctionDefinitionContext):
         funcdef = FuncDef()
-        funcdef.depth = self.ast.currentnode.depth + 1
-        # TODO: Make a helper function like "set_relationship" to set parent, child and depth
-        funcdef.parent = self.ast.currentnode
-        self.ast.currentnode.children.append(funcdef)
+        self.ast.set_node_relationship(funcdef)
         decl = Decl()
         funcdef.decl = decl
-        decl.depth = funcdef.depth + 1
-        funcdef.children.append(decl)
-        self.ast.currentnode = decl
-        self.ast.currentnode.parent = funcdef
+        self.ast.set_node_relationship(decl, funcdef)
 
     # Exit a parse tree produced by CParser#functionDefinition.
     def exitFunctionDefinition(self, ctx: CParser.FunctionDefinitionContext):
         if ctx.getChildCount() < 2:
             return
-        self.ast.currentnode.children.pop(0)
+        # self.ast.currentnode.children.pop(0)
+        self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#declarationList.
     def enterDeclarationList(self, ctx: CParser.DeclarationListContext):
