@@ -14,7 +14,7 @@ class CListener(ParseTreeListener):
         self.ast = ast
 
     # Helper functions for assigning left and right of binaryop/assignment
-    def assign_left_and_right(self, ASTNode):
+    def assign_attributes(self, ASTNode):
         if isinstance(self.ast.currentnode, BinaryOp):
             if self.ast.currentnode.left is None:
                 self.ast.set_node_relationship(ASTNode, None, "left")
@@ -28,7 +28,13 @@ class CListener(ParseTreeListener):
         elif isinstance(self.ast.currentnode, Decl):  # for declaration initval
             self.ast.set_node_relationship(ASTNode, None, "initialval")
         elif isinstance(self.ast.currentnode, ArrayDecl):
-            self.ast.set_node_relationship(ASTNode, None, "dim")
+            if self.ast.currentnode.dim is None:
+                self.ast.set_node_relationship(ASTNode, None, "dim")
+            else:
+                temp = self.ast.currentnode.dim
+                self.ast.set_node_relationship(ASTNode, None, "dim", False)
+                self.ast.set_node_relationship(temp, self.ast.currentnode.parent, "dim")
+                print(self.ast.currentnode.parent.dim.value)
         elif isinstance(self.ast.currentnode, ArrayRef):
             if self.ast.currentnode.id is None:
                 self.ast.set_node_relationship(ASTNode, None, "id")
@@ -53,11 +59,11 @@ class CListener(ParseTreeListener):
                 constant.type = "float"
             else:
                 constant.type = "int"
-            self.assign_left_and_right(constant)
+            self.assign_attributes(constant)
         elif ctx.Identifier() is not None:
             identifier = ID()
             identifier.name += ctx.getText()
-            self.assign_left_and_right(identifier)
+            self.assign_attributes(identifier)
 
     # Exit a parse tree produced by CParser#primaryExpression.
     def exitPrimaryExpression(self, ctx: CParser.PrimaryExpressionContext):
@@ -555,10 +561,11 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#directDeclarator.
     def enterDirectDeclarator(self, ctx: CParser.DirectDeclaratorContext):
-        if getattr(self.ast.currentnode, "declname", False) is not False and ctx.Identifier() is not None:
-            self.ast.currentnode.declname = ctx.getText()
-        elif getattr(self.ast.currentnode.parent, "declname", False) is not False and ctx.Identifier() is not None:
-            self.ast.currentnode.parent.declname = ctx.getText()
+        node = self.ast.currentnode
+        while getattr(node, "declname", False) is False:
+            node = node.parent
+        if ctx.Identifier() is not None:
+            node.declname = ctx.getText()
 
         if ctx.getChildCount() > 1 and ctx.children[1].getText() == "[":
             arraydecl = ArrayDecl()
@@ -573,10 +580,11 @@ class CListener(ParseTreeListener):
             funcdecl.type = self.ast.currentnode.type
             self.ast.set_node_relationship(funcdecl.type, funcdecl, None, False)
             self.ast.set_node_relationship(funcdecl, None, "type")
+            print(self.ast.currentnode)
 
     # Exit a parse tree produced by CParser#directDeclarator.
     def exitDirectDeclarator(self, ctx: CParser.DirectDeclaratorContext):
-        if isinstance(self.ast.currentnode, FuncDecl):
+        if isinstance(self.ast.currentnode, FuncDecl) and ctx.getChildCount() > 1:
             self.ast.currentnode = self.ast.currentnode.parent.parent
 
     # Enter a parse tree produced by CParser#gccDeclaratorExtension.
@@ -645,19 +653,27 @@ class CListener(ParseTreeListener):
 
     # Enter a parse tree produced by CParser#parameterList.
     def enterParameterList(self, ctx: CParser.ParameterListContext):
-        pass
+        if ctx.getChildCount() < 2:
+            return
+        paramlist = ParamList()
+        self.ast.set_node_relationship(paramlist)
 
     # Exit a parse tree produced by CParser#parameterList.
     def exitParameterList(self, ctx: CParser.ParameterListContext):
-        pass
+        if ctx.getChildCount() > 1:
+            self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#parameterDeclaration.
     def enterParameterDeclaration(self, ctx: CParser.ParameterDeclarationContext):
-        pass
+        paramdecl = Decl()
+        if isinstance(self.ast.currentnode.parent, ParamList):
+            self.ast.set_node_relationship(paramdecl, None, "params")
+        else:
+            self.ast.set_node_relationship(paramdecl)
 
     # Exit a parse tree produced by CParser#parameterDeclaration.
     def exitParameterDeclaration(self, ctx: CParser.ParameterDeclarationContext):
-        pass
+        self.ast.currentnode = self.ast.currentnode.parent
 
     # Enter a parse tree produced by CParser#identifierList.
     def enterIdentifierList(self, ctx: CParser.IdentifierListContext):

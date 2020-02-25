@@ -1,10 +1,8 @@
-int a[3] = {3, 4, 6};
+int a[3][4] = {2, 4, 5 , 2, 4, 5, 2, 4, 5, 2, 4, 5};
 int b;
 
-int main(){
-	b = a[2];
-	if(b < a)
-		b -= a;
+int main(int argc, int argv){
+	b -= a[3][2];
 	return 0;
 }	
 
