@@ -235,7 +235,15 @@ class ExprList(ASTNode):
 
 
 class For(ASTNode):
-    pass
+    def __init__(self):
+        super(For, self).__init__(parent=None)
+        self.init = None
+        self.cond = None
+        self.iter = None
+        self.statement = None
+
+    def prepare_to_print(self):
+        self.name += "For loop: "
 
 
 class FuncCall(ASTNode):
@@ -371,7 +379,13 @@ class Typename(ASTNode):
 
 
 class UnaryOp(ASTNode):
-    pass
+    def __init__(self):
+        super(UnaryOp, self).__init__(parent=None)
+        self.op = None
+        self.expr = None
+
+    def prepare_to_print(self):
+        self.name += "UnaryOp: " + self.op + " "
 
 
 class Union(ASTNode):
