@@ -13,42 +13,6 @@ class CListener(ParseTreeListener):
     def __init__(self, ast):
         self.ast = ast
 
-    # Helper functions for assigning left and right of binaryop/assignment
-    # TODO - can I move this inside AST class?
-    def assign_terminal_attributes(self, ASTNode):
-        if isinstance(self.ast.currentnode, BinaryOp):
-            if self.ast.currentnode.left is None:
-                self.ast.set_node_relationship(ASTNode, None, "left")
-            else:
-                self.ast.set_node_relationship(ASTNode, None, "right")
-        elif isinstance(self.ast.currentnode, Assignment):
-            if self.ast.currentnode.lvalue is None:
-                self.ast.set_node_relationship(ASTNode, None, "lvalue")
-            else:
-                self.ast.set_node_relationship(ASTNode, None, "rvalue")
-        elif isinstance(self.ast.currentnode, Decl):  # for declaration initval
-            self.ast.set_node_relationship(ASTNode, None, "initialval")
-        elif isinstance(self.ast.currentnode, ArrayDecl):
-            if self.ast.currentnode.dim is None:
-                self.ast.set_node_relationship(ASTNode, None, "dim")
-            else:
-                temp = self.ast.currentnode.dim
-                self.ast.set_node_relationship(ASTNode, None, "dim", False)
-                self.ast.set_node_relationship(temp, self.ast.currentnode.parent, "dim")
-                print(self.ast.currentnode.parent.dim.value)
-        elif isinstance(self.ast.currentnode, ArrayRef):
-            if self.ast.currentnode.id is None:
-                self.ast.set_node_relationship(ASTNode, None, "id")
-            else:
-                self.ast.set_node_relationship(ASTNode, None, "index")
-        elif isinstance(self.ast.currentnode, Return):
-            self.ast.set_node_relationship(ASTNode, None, "expr")
-        elif isinstance(self.ast.currentnode, InitList):
-            self.ast.set_node_relationship(ASTNode, None, "expr")
-        elif isinstance(self.ast.currentnode, UnaryOp):
-            self.ast.set_node_relationship(ASTNode, None, "expr")
-            # do I need to update last node if i know that constants/identifiers wont have children?
-
     # Enter a parse tree produced by CParser#primaryExpression.
     def enterPrimaryExpression(self, ctx: CParser.PrimaryExpressionContext):
         # this whole function needs to change, currently relies on previous node being binary op when it could
@@ -62,11 +26,11 @@ class CListener(ParseTreeListener):
                 constant.type = "float"
             else:
                 constant.type = "int"
-            self.assign_terminal_attributes(constant)
+            self.ast.assign_terminal_attributes(constant)
         elif ctx.Identifier() is not None:
             identifier = ID()
             identifier.name += ctx.getText()
-            self.assign_terminal_attributes(identifier)
+            self.ast.assign_terminal_attributes(identifier)
 
     # Exit a parse tree produced by CParser#primaryExpression.
     def exitPrimaryExpression(self, ctx: CParser.PrimaryExpressionContext):

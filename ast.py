@@ -22,13 +22,49 @@ class AST:
         if setcurrent:
             self.currentnode = child
 
+    # Helper functions for assigning left and right of binaryop/assignment
+    # TODO - can I move this inside AST class? yes
+    def assign_terminal_attributes(self, node):
+        if isinstance(self.currentnode, BinaryOp):
+            if self.currentnode.left is None:
+                self.set_node_relationship(node, None, "left")
+            else:
+                self.set_node_relationship(node, None, "right")
+        elif isinstance(self.currentnode, Assignment):
+            if self.currentnode.lvalue is None:
+                self.set_node_relationship(node, None, "lvalue")
+            else:
+                self.set_node_relationship(node, None, "rvalue")
+        elif isinstance(self.currentnode, Decl):  # for declaration initval
+            self.set_node_relationship(node, None, "initialval")
+        elif isinstance(self.currentnode, ArrayDecl):
+            if self.currentnode.dim is None:
+                self.set_node_relationship(node, None, "dim")
+            else:
+                temp = self.currentnode.dim
+                self.set_node_relationship(node, None, "dim", False)
+                self.set_node_relationship(temp, self.currentnode.parent, "dim")
+                print(self.currentnode.parent.dim.value)
+        elif isinstance(self.currentnode, ArrayRef):
+            if self.currentnode.id is None:
+                self.set_node_relationship(node, None, "id")
+            else:
+                self.set_node_relationship(node, None, "index")
+        elif isinstance(self.currentnode, Return):
+            self.set_node_relationship(node, None, "expr")
+        elif isinstance(self.currentnode, InitList):
+            self.set_node_relationship(node, None, "expr")
+        elif isinstance(self.currentnode, UnaryOp):
+            self.set_node_relationship(node, None, "expr")
+            # do I need to update last node if i know that constants/identifiers wont have children?
+
     def prepare_tree_for_printing(self, node):
         if node is not None:
             node.prepare_to_print()
             for child in node.children:
                 self.prepare_tree_for_printing(child)
 
-    # TESTING PRINT
+    # Credit clemtoy - https://github.com/clemtoy/pptree
     def print_tree(self, current_node, childattr='children', nameattr='name', indent='', last='updown'):
 
         if hasattr(current_node, nameattr):
