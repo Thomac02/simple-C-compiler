@@ -1,10 +1,9 @@
 import sys
 from antlr4 import *
-from antlr4.tree.Trees import Trees
-from CLexer import CLexer
-from CParser import CParser
-from CListener import CListener
-from ast import AST
+from ast_generator.CLexer import CLexer
+from ast_generator.CParser import CParser
+from ast_generator.CListener import CListener
+from ast_generator.c_ast import CAST
 
 
 def main(argv):
@@ -22,7 +21,7 @@ def main(argv):
     tree = parser.translationUnit()
 
     # create the ast object, passing the name of the program to the constructor
-    ast = AST(argv[1])
+    ast = CAST(argv[1])
 
     # create the listener and have it populate the ast
     clistener = CListener(ast)

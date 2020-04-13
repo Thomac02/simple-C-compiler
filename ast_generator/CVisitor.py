@@ -4,7 +4,7 @@ from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .CParser import CParser
 else:
-    from CParser import CParser
+    from ast_generator.CParser import CParser
 
 
 # This class defines a complete generic visitor for a parse tree produced by CParser.
