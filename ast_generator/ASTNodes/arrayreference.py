@@ -1,9 +1,9 @@
 from .astnode import AstNode
 
 
-class ArrayRef(AstNode):
+class ArrayReference(AstNode):
     def __init__(self):
-        super(ArrayRef, self).__init__(parent=None)
+        super(ArrayReference, self).__init__(parent=None)
         self.id = None
         self.index = None
 

@@ -1,13 +1,11 @@
 from .astnode import *
 
 
-class Decl(AstNode):
+class Declaration(AstNode):
     def __init__(self):
-        super(Decl, self).__init__(parent=None)
+        super(Declaration, self).__init__(parent=None)
         self.declname = None
         self.quals = []  # e.g. const, volatile, static
-        self.funcspec = []  # e.g. inline
-        self.storage = []  # e.g. extern, register etc.
         self.type = None
         self.initialval = None
 

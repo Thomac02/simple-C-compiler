@@ -1,9 +1,9 @@
 from .astnode import *
 
 
-class UnaryOp(AstNode):
+class UnaryOperator(AstNode):
     def __init__(self):
-        super(UnaryOp, self).__init__(parent=None)
+        super(UnaryOperator, self).__init__(parent=None)
         self.op = None
         self.expr = None
         self.iscond = False

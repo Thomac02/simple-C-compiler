@@ -7,14 +7,8 @@ class Assignment(AstNode):
         self.op = None
         self.lvalue = None
         self.rvalue = None
-        self.trueblock = False
-        self.falseblock = False
 
     def prepare_to_print(self):
-        if self.trueblock:
-            self.name += "True? "
-        elif self.falseblock:
-            self.name += "False? "
         self.name += "Assignment " + str(self.op) + " "
 
     def c_visitor(self):

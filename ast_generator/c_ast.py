@@ -1,17 +1,15 @@
 from ast_generator.ast import AST
 
-from .ASTNodes.arraydecl import ArrayDecl
-from .ASTNodes.arrayref import ArrayRef
+from .ASTNodes.arraydeclaration import ArrayDeclaration
+from .ASTNodes.arrayreference import ArrayReference
 from .ASTNodes.assignment import Assignment
 from .ASTNodes.binaryop import BinaryOp
 from .ASTNodes.compound import Compound
-from .ASTNodes.decl import Decl
-from .ASTNodes.family import Family
+from .ASTNodes.declaration import Declaration
 from .ASTNodes.for_ import For
 from .ASTNodes.initlist import InitList
-from .ASTNodes.rate import Rate
 from .ASTNodes.return_ import Return
-from .ASTNodes.unaryop import UnaryOp
+from .ASTNodes.unaryoperator import UnaryOperator
 from .ASTNodes.while_ import While
 
 
@@ -51,12 +49,12 @@ class CAST(AST):
                 self.set_node_relationship(node, None, "lvalue")
             else:
                 self.set_node_relationship(node, None, "rvalue")
-        elif isinstance(self.current_node, Decl):  # for declaration initval
+        elif isinstance(self.current_node, Declaration):  # for declaration initval
             self.set_node_relationship(node, None, "initialval")
-        elif isinstance(self.current_node, ArrayDecl):
+        elif isinstance(self.current_node, ArrayDeclaration):
             self.arraydims.append(node)
             self.set_node_relationship(node, None, "dim")  # set them here to be reversed later
-        elif isinstance(self.current_node, ArrayRef):
+        elif isinstance(self.current_node, ArrayReference):
             if self.current_node.id is None:
                 self.set_node_relationship(node, None, "id")
             else:
@@ -67,7 +65,7 @@ class CAST(AST):
             self.set_node_relationship(node, None, "condition")
         elif isinstance(self.current_node, InitList):
             self.set_node_relationship(node, None, "expr")
-        elif isinstance(self.current_node, UnaryOp):
+        elif isinstance(self.current_node, UnaryOperator):
             self.set_node_relationship(node, None, "expr")
         elif isinstance(self.current_node, Rate):
             self.set_node_relationship(node, None, "val")
@@ -76,7 +74,7 @@ class CAST(AST):
 
     def reverse_array_dims(self, node):
         index = 0
-        while isinstance(node, ArrayDecl):
+        while isinstance(node, ArrayDeclaration):
             self.set_node_relationship(self.arraydims[index], node, "dim", False)
             node = node.type
             index = index + 1
@@ -97,7 +95,7 @@ class CAST(AST):
 
     def get_c_line_ending(self, node):
         ending = ""
-        if isinstance(node, BinaryOp) or isinstance(node, UnaryOp):
+        if isinstance(node, BinaryOp) or isinstance(node, UnaryOperator):
             if isinstance(node.parent, For):
                 if node == node.parent.iter:
                     ending = ") {\n"
@@ -108,7 +106,7 @@ class CAST(AST):
                     ending = ") {\n"
             else:
                 ending = ";\n"
-        elif isinstance(node, Decl) or isinstance(node, Assignment):
+        elif isinstance(node, Declaration) or isinstance(node, Assignment):
             if isinstance(node.parent, For) and (node == node.parent.init or node == node.parent.cond):
                 ending = "; "
             else:

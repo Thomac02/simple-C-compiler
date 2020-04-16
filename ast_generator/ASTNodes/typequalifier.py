@@ -1,9 +1,9 @@
 from .astnode import *
 
 
-class TypeQual(AstNode):
+class TypeQualifier(AstNode):
     def __init__(self):
-        super(TypeQual, self).__init__(parent=None)
+        super(TypeQualifier, self).__init__(parent=None)
         self.qual = None
         self.fam = None
         self.rate = None

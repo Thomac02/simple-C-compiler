@@ -1,9 +1,9 @@
 from .astnode import AstNode
 
 
-class ArrayDecl(AstNode):
+class ArrayDeclaration(AstNode):
     def __init__(self):
-        super(ArrayDecl, self).__init__(parent=None)
+        super(ArrayDeclaration, self).__init__(parent=None)
         self.type = None
         self.dim = None
         self.dim_quals = None

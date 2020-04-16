@@ -1,9 +1,9 @@
 from .astnode import *
 
 
-class FuncDef(AstNode):
+class FuncDefinition(AstNode):
     def __init__(self):
-        super(FuncDef, self).__init__(parent=None)
+        super(FuncDefinition, self).__init__(parent=None)
         self.decl = None
         self.param_decls = []
         self.body = None

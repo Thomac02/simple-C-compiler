@@ -1,9 +1,9 @@
 from .astnode import *
 
 
-class TypeDecl(AstNode):
+class TypeDeclaration(AstNode):
     def __init__(self):
-        super(TypeDecl, self).__init__(parent=None)
+        super(TypeDeclaration, self).__init__(parent=None)
         self.declname = None
         self.type = None
 

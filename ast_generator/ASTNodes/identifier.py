@@ -1,9 +1,9 @@
 from .astnode import *
 
 
-class ID(AstNode):
+class Identifier(AstNode):
     def __init__(self):
-        super(ID, self).__init__(parent=None)
+        super(Identifier, self).__init__(parent=None)
 
     def prepare_to_print(self):
         self.name = "Identifier " + self.name
